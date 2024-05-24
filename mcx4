@@ -1,0 +1,195 @@
+
+
+$targetUser = ""
+$allLocalUsersAccounts = @(Get-LocalUser)
+$allEnabledUserAccounts = @(Get-LocalUser | Where-Object { ($_.Enabled) })
+$allDisabledUserAccounts = @(Get-LocalUser | Where-Object { !($_.Enabled) })
+
+function setExecPolicySignedToRestricted(){
+    cmd.exe /c "powershell set-executionPolicy Restricted -scope CurrentUser"    
+}
+
+function checkIFLocalUserExists(){
+
+    $ErrorActionPreference = 'Stop'
+    $VerbosePreference = 'Continue'
+    $USERNAME = $targetUser
+    $ObjLocalUser = $null
+    $userFound = $false
+    
+    try {
+        $ObjLocalUser = Get-LocalUser $USERNAME
+        $userFound = $true
+    }
+    catch [Microsoft.PowerShell.Commands.UserNotFoundException] {
+        $userFound = $false
+    }
+    catch {
+        "An unspecifed error occured" | Write-Error
+        Exit # Stop Powershell! 
+    }
+    
+    return $userFound
+}
+
+function ifUserFoundPerformChange(){
+    
+    $userChoice = ""
+    $userIsEnabled = ((Get-LocalUser -Name $targetUser -ErrorAction Stop).Enabled)
+    
+    if ($userIsEnabled) {
+        write-output "Currently $($targetUser) is enabled, would you like to disable?"
+        $userChoice = Read-Host -Prompt "Type 'yes' (in lowercase) for disabling  $($targetUser): "
+
+        if ($userChoice -eq "yes"){
+            Write-Output "Proceeding to disable $($targetUser)"
+        }
+        else{
+            Write-Host "Please re-run script as you have not typed 'yes'"
+            Write-Host "Now exiting......"
+            exit
+        }
+    }
+
+    else {
+        write-output "Currently $($targetUser) is disabled, would you like to enable?"
+        $userChoice = Read-Host -Prompt "Type 'yes' (in lowercase) for enabling $($targetUser) "
+
+        if ($userChoice -eq "yes"){
+            Write-Output "Proceeding to enabling $($targetUser)"
+        }
+        else{
+            Write-Host "Please re-run script as you have not typed 'yes'"
+            Write-Host "Now exiting......"
+            exit
+        }
+
+    }
+}
+
+function promptUserForActivationChoice(){
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [Boolean]
+        $wantToDisable
+    )
+        
+        if ($wantToDisable){
+            write-output "Currently $($targetUser) is enabled, you have chosen to disable this user."
+            Write-Output "Proceeding to disable $($targetUser)"
+        }
+        else{
+            write-output "Currently $($targetUser) is disabled, you have chosen to enable this user."
+            Write-Output "Proceeding to disable $($targetUser)"
+        }
+}
+
+function getAllListedUsers(){
+    Write-Output "========= Current Users in System ========="
+    foreach ($user in $allLocalUsersAccounts) {
+         Write-Output ($user[0])
+    } 
+}
+
+function getAllDisabledListedUsers(){
+    Write-Output "========= Current Users in System ========="
+    foreach ($user in $allDisabledUserAccounts) {
+         Write-Output ($user)
+    } 
+}
+
+function promptUserForUsername(){
+    $userChoice = Read-Host -Prompt "Type a username "
+    While (($Null -eq $userChoice) -or ($userChoice -eq '') ) {
+        $userChoice = Read-Host -Prompt "Please type a username "
+    }
+    return $userChoice.ToString()
+}
+
+function displayMenu(){
+    return "1. Disable a user `n2. Enable a user `n3. List all users `n4. List all disabled users"
+}
+
+function disableEnableAUser(){
+    
+    #Get-LocalUser -Name TestUser | Where-Object Enabled | Disable-LocalUser
+
+    $targetUser = promptUserForUsername
+    
+    if (checkIFLocalUserExists) {
+        Write-Output "$($targetUser) exists and will now check to see if the user is enabled or disabled"
+    }
+    else {
+        Write-Output "$($targetUser) does not exists, please ensure you type the correct username"
+        Write-Host "System will now exit!"
+        exit
+    }
+
+}
+
+function startScript(){
+    displayMenu
+    $convertedMenuChoice = 0
+    $menuChoice = Read-Host -Prompt "Please select from menu above"
+
+
+    
+        if ($menuChoice -is [String]) {
+            $convertedMenuChoice = [Int]$menuChoice
+            #write-host $convertedMenuChoice.GetType()
+            #Write-Host $menuChoice.GetType()
+
+            if($convertedMenuChoice -in 1..4){
+                
+                Write-Host "choice valid"
+                
+                switch ($convertedMenuChoice) {
+                    1 {"It is one."}
+                    2 {"It is two."}
+                    3 
+                        {                    
+                            getAllListedUsers
+                            break;
+                        }
+                    4 
+                        {
+                            getAllDisabledListedUsers
+                            break;
+                        }
+                    3 {"Three again."}
+                }
+            }
+            else{
+                Write-Host "Invalid choice, please select between 1-4"
+            }
+        }
+    
+}
+
+#if ($targetUser) {
+#    Write-Output "Please run using the proper script to get things started"
+#    exit
+#}
+
+
+#ifUserFoundPerformChange
+
+#promptUserForActivationChoice $true
+
+#getAllListedUsers
+
+#promptUserForActivationChoice
+
+#============================================================================
+
+startScript
+
+# 1. Find user and verify that the user exists. If the user is not found, please display a message to the
+#    user running the script.
+
+#disableEnableAUser
+
+# 2. 
+
+
